@@ -5,9 +5,11 @@ interface MongooseConnection {
   promise: Promise<typeof mongoose> | null;
 }
 
-declare global {
-  var mongoose: MongooseConnection | undefined;
+interface CustomGlobal extends Global {
+  mongoose?: MongooseConnection;
 }
+
+declare const global: CustomGlobal;
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
