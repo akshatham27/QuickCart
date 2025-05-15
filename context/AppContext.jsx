@@ -20,14 +20,29 @@ export const AppContextProvider = (props) => {
     const { user } = useUser();
     const { getToken } = useAuth()
 
-    const [products, setProducts] = useState([])
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [userData, setUserData] = useState(false)
     const [isSeller, setIsSeller] = useState(false)
     const [cartItems, setCartItems] = useState({})
 
-    const fetchProductData = async () => {
-        setProducts(productsDummyData)
-    }
+    const fetchProducts = async () => {
+        try {
+            const response = await fetch('/api/products');
+            const data = await response.json();
+            
+            if (data.success) {
+                setProducts(data.products);
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            console.error("Error fetching products:", error);
+            toast.error("Failed to fetch products");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const fetchUserData = async () => {
         try{
@@ -98,7 +113,7 @@ export const AppContextProvider = (props) => {
     }
 
     useEffect(() => {
-        fetchProductData()
+        fetchProducts()
     }, [])
 
     useEffect(() => {
@@ -112,7 +127,8 @@ export const AppContextProvider = (props) => {
         currency, router,
         isSeller, setIsSeller,
         userData, fetchUserData,
-        products, fetchProductData,
+        products, fetchProducts,
+        loading,
         cartItems, setCartItems,
         addToCart, updateCartQuantity,
         getCartCount, getCartAmount

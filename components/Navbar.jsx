@@ -7,7 +7,7 @@ import Image from "next/image";
 import { useClerk, UserButton} from "@clerk/nextjs";
 
 const Navbar = () => {
-  const { isSeller, router, user} = useAppContext();
+  const { isSeller, router, user, getCartCount } = useAppContext();
   const {openSignIn} = useClerk();
 
   return (
@@ -35,8 +35,21 @@ const Navbar = () => {
         {isSeller && <button onClick={() => router.push("/seller")} className="text-xs border px-4 py-1.5 rounded-full">Seller Dashboard</button>}
       </div>
 
-      <ul className="hidden md:flex items-center gap-4">
-        <Image className="w-4 h-4" src={assets.search_icon} alt="search icon" />
+      <ul className="hidden md:flex items-center gap-6">
+        <div className="flex items-center gap-6">
+          <Image className="w-4 h-4" src={assets.search_icon} alt="search icon" />
+          <button 
+            onClick={() => router.push("/cart")}
+            className="relative hover:text-gray-900 transition"
+          >
+            <Image className="w-5 h-5" src={assets.cart_icon} alt="cart icon" />
+            {getCartCount() > 0 && (
+              <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                {getCartCount()}
+              </span>
+            )}
+          </button>
+        </div>
 
         {user ? (
           <UserButton>
@@ -78,6 +91,17 @@ const Navbar = () => {
       </ul>
 
       <div className="flex items-center md:hidden gap-3">
+        <button 
+          onClick={() => router.push("/cart")}
+          className="relative hover:text-gray-900 transition"
+        >
+          <Image className="w-5 h-5" src={assets.cart_icon} alt="cart icon" />
+          {getCartCount() > 0 && (
+            <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+              {getCartCount()}
+            </span>
+          )}
+        </button>
         {isSeller && <button onClick={() => router.push("/seller")} className="text-xs border px-4 py-1.5 rounded-full">Seller Dashboard</button>}
         {user ? (
           <UserButton>

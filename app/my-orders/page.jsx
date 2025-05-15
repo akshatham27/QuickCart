@@ -38,6 +38,14 @@ const MyOrders = () => {
         fetchOrders();
     }, []);
 
+    const getProductDisplay = (item) => {
+        const product = item.productId;
+        if (!product || !product.name) {
+            return `Product (Removed) x ${item.quantity}`;
+        }
+        return `${product.name} x ${item.quantity}`;
+    };
+
     return (
         <>
             <Navbar />
@@ -55,10 +63,9 @@ const MyOrders = () => {
                                     />
                                     <p className="flex flex-col gap-3">
                                         <span className="font-medium text-base">
-                                            {order.items.map((item) => {
-                                                const product = item.productId;
-                                                return `${product.name} x ${item.quantity}`;
-                                            }).join(", ")}
+                                            {order.items.map((item, index) => (
+                                                getProductDisplay(item)
+                                            )).join(", ")}
                                         </span>
                                         <span>Items: {order.items.length}</span>
                                     </p>

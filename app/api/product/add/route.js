@@ -1,96 +1,117 @@
-import { v2 as cloudinary } from "cloudinary";
 import { getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import authSeller from "@/lib/authSeller";
-import connectDB from "@/lib/db.js";
-import Product from "@/app/api/product/add/route"; // ✅ Make sure this path is correct
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import connectDB from "@/lib/db";
+import Product from "@/models/Product";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 
 export async function POST(request) {
-  try {
-    const { userId } = getAuth(request);
-    const isSeller = await authSeller(userId);
-
-    if (!isSeller) {
-      return NextResponse.json(
-        { success: false, message: "Not authorized" },
-        { status: 401 }
-      );
-    }
-
-    const formData = await request.formData();
-    const name = formData.get("name");
-    const description = formData.get("description");
-    const category = formData.get("category");
-    const price = formData.get("price");
-    const offerPrice = formData.get("offerPrice");
-    const files = formData.getAll("images");
-
-    if (!name || !description || !category || !price) {
-      return NextResponse.json(
-        { success: false, message: "Missing required fields" },
-        { status: 400 }
-      );
-    }
-
-    if (!files || files.length === 0) {
-      return NextResponse.json(
-        { success: false, message: "No files uploaded" },
-        { status: 400 }
-      );
-    }
-
-    const uploadedImages = await Promise.all(
-      files.map(async (file) => {
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
-        return new Promise((resolve, reject) => {
-          const stream = cloudinary.uploader.upload_stream(
-            { resource_type: "auto" },
-            (error, result) => {
-              if (error) reject(error);
-              else resolve(result);
-            }
-          );
-          stream.end(buffer);
+    try {
+        // Debug Cloudinary configuration
+        console.log("Cloudinary Config Check:", {
+            cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ? "✓ Present" : "✗ Missing",
+            apiKey: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY ? "✓ Present" : "✗ Missing",
+            apiSecret: process.env.CLOUDINARY_API_SECRET ? "✓ Present" : "✗ Missing"
         });
-      })
-    );
+        
+        console.log("Starting product addition process...");
+        
+        const { userId } = getAuth(request);
+        if (!userId) {
+            console.error("No userId found in request");
+            return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+        }
+        console.log("User authenticated:", userId);
 
-    const imageUrls = uploadedImages.map((img) => img.secure_url);
+        const formData = await request.formData();
+        console.log("Received form data fields:", [...formData.keys()]);
+        
+        const name = formData.get('name');
+        const description = formData.get('description');
+        const category = formData.get('category');
+        const price = formData.get('price');
+        const offerPrice = formData.get('offerPrice');
+        const files = formData.getAll('images').filter(file => file.size > 0);
 
-    await connectDB();
+        console.log("Form data values:", { 
+            name, description, category, price, offerPrice,
+            filesCount: files.length,
+            fileTypes: files.map(f => f.type)
+        });
 
-    const product = await Product.create({
-      userId,
-      name,
-      description,
-      category,
-      price: Number(price),
-      offerPrice: Number(offerPrice),
-      image: imageUrls,
-      date: Date.now(),
-    });
+        // Validate required fields
+        if (!name || !description || !category || !price || !offerPrice) {
+            console.error("Missing required fields:", { name, description, category, price, offerPrice });
+            return NextResponse.json({ success: false, message: 'All fields are required' }, { status: 400 });
+        }
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Product added successfully",
-        newProduct: product,
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error("Product creation error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
-  }
+        if (!files || files.length === 0) {
+            console.error("No valid files uploaded");
+            return NextResponse.json({ success: false, message: 'At least one image is required' }, { status: 400 });
+        }
+
+        // Upload images to Cloudinary
+        console.log("Starting Cloudinary upload...");
+        const uploadPromises = files.map((file, index) => {
+            console.log(`Uploading file ${index + 1}:`, { 
+                type: file.type, 
+                size: file.size,
+                name: file.name 
+            });
+            return uploadToCloudinary(file);
+        });
+
+        const imageUrls = await Promise.all(uploadPromises);
+        console.log("Successfully uploaded images:", imageUrls);
+
+        if (imageUrls.length === 0) {
+            console.error("No images were successfully uploaded");
+            return NextResponse.json({ success: false, message: 'Failed to upload images' }, { status: 500 });
+        }
+
+        // Connect to database
+        console.log("Connecting to database...");
+        await connectDB();
+        console.log("Database connected successfully");
+
+        // Create product
+        console.log("Creating product in database with data:", {
+            userId,
+            name,
+            description,
+            category,
+            price,
+            offerPrice,
+            imageCount: imageUrls.length
+        });
+
+        const product = await Product.create({
+            userId,
+            name,
+            description,
+            category,
+            price: Number(price),
+            offerPrice: Number(offerPrice),
+            image: imageUrls,
+            date: Date.now(),
+        });
+
+        console.log("Product created successfully:", {
+            id: product._id,
+            name: product.name,
+            imageUrls: product.image
+        });
+
+        return NextResponse.json({ 
+            success: true, 
+            message: 'Product added successfully', 
+            product 
+        }, { status: 201 });
+    } catch (error) {
+        console.error("Error in product addition:", error);
+        return NextResponse.json({ 
+            success: false, 
+            message: error.message || 'Failed to add product',
+            error: error.stack
+        }, { status: 500 });
+    }
 }

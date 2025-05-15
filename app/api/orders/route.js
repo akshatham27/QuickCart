@@ -13,31 +13,96 @@ export async function POST(req) {
         }
 
         await connectDB();
-        const { items, totalAmount, shippingAddress } = await req.json();
+        const { items, totalAmount, shippingAddress, paymentMethod } = await req.json();
 
-        // Validate items and get seller ID from the first product
+        // Validate required fields
         if (!items || items.length === 0) {
             return NextResponse.json({ success: false, message: "No items in order" }, { status: 400 });
         }
 
-        // Get the first product to get the seller ID
-        const firstProduct = await Product.findById(items[0].productId);
-        if (!firstProduct) {
-            return NextResponse.json({ success: false, message: "Product not found" }, { status: 404 });
+        if (!shippingAddress) {
+            return NextResponse.json({ success: false, message: "Shipping address is required" }, { status: 400 });
         }
 
-        const order = await Order.create({
-            userId,
-            items,
-            totalAmount,
-            shippingAddress,
-            sellerId: firstProduct.sellerId,
+        if (!totalAmount || totalAmount <= 0) {
+            return NextResponse.json({ success: false, message: "Invalid total amount" }, { status: 400 });
+        }
+
+        if (!paymentMethod || !['cod', 'online'].includes(paymentMethod)) {
+            return NextResponse.json({ success: false, message: "Invalid payment method" }, { status: 400 });
+        }
+
+        // Validate and fetch all products
+        const productIds = items.map(item => item.productId);
+        console.log("Attempting to find products with IDs:", productIds);
+        
+        const products = await Product.find({ _id: { $in: productIds } });
+        console.log("Found products:", products.map(p => ({ id: p._id.toString(), name: p.name })));
+
+        if (products.length === 0) {
+            console.log("No products found in database");
+            return NextResponse.json({ success: false, message: "No products found" }, { status: 404 });
+        }
+
+        if (products.length !== productIds.length) {
+            const foundIds = products.map(p => p._id.toString());
+            const missingIds = productIds.filter(id => !foundIds.includes(id.toString()));
+            console.error("Product count mismatch. Found:", products.length, "Expected:", productIds.length);
+            console.error("Missing products:", missingIds);
+            return NextResponse.json({ success: false, message: "One or more products not found" }, { status: 404 });
+        }
+
+        // Group orders by seller
+        const ordersBySeller = {};
+        
+        items.forEach(item => {
+            const product = products.find(p => p._id.toString() === item.productId.toString());
+            if (!product) return;
+
+            if (!ordersBySeller[product.userId]) {
+                ordersBySeller[product.userId] = {
+                    items: [],
+                    totalAmount: 0
+                };
+            }
+
+            ordersBySeller[product.userId].items.push({
+                productId: product._id,
+                quantity: item.quantity,
+                price: product.offerPrice || product.price
+            });
+
+            ordersBySeller[product.userId].totalAmount += 
+                (product.offerPrice || product.price) * item.quantity;
         });
 
-        return NextResponse.json({ success: true, order });
+        // Create orders for each seller
+        const orders = await Promise.all(
+            Object.entries(ordersBySeller).map(([sellerId, orderData]) => {
+                return Order.create({
+                    userId,
+                    sellerId,
+                    items: orderData.items,
+                    totalAmount: orderData.totalAmount,
+                    shippingAddress,
+                    paymentMethod,
+                    status: 'pending',
+                    createdAt: new Date()
+                });
+            })
+        );
+
+        return NextResponse.json({ 
+            success: true, 
+            message: "Orders created successfully",
+            orders 
+        });
     } catch (error) {
         console.error("Error creating order:", error);
-        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+        return NextResponse.json({ 
+            success: false, 
+            message: error.message || "Failed to create order" 
+        }, { status: 500 });
     }
 }
 
@@ -59,12 +124,18 @@ export async function GET(req) {
         if (role === 'seller') {
             // If role is seller, get orders where sellerId matches userId
             orders = await Order.find({ sellerId: userId })
-                .populate('items.productId')
+                .populate({
+                    path: 'items.productId',
+                    model: 'product'
+                })
                 .sort({ createdAt: -1 });
         } else {
             // Otherwise, get orders for the user
             orders = await Order.find({ userId })
-                .populate('items.productId')
+                .populate({
+                    path: 'items.productId',
+                    model: 'product'
+                })
                 .sort({ createdAt: -1 });
         }
 

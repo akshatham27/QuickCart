@@ -37,6 +37,14 @@ const Orders = () => {
         fetchSellerOrders();
     }, []);
 
+    const getProductDisplay = (item) => {
+        const product = item.productId;
+        if (!product || !product.name) {
+            return `Product (Removed) x ${item.quantity}`;
+        }
+        return `${product.name} x ${item.quantity}`;
+    };
+
     return (
         <div className="flex-1 h-screen overflow-scroll flex flex-col justify-between text-sm">
             {loading ? <Loading /> : <div className="md:p-10 p-4 space-y-5">
@@ -52,10 +60,9 @@ const Orders = () => {
                                 />
                                 <p className="flex flex-col gap-3">
                                     <span className="font-medium">
-                                        {order.items.map((item) => {
-                                            const product = item.productId;
-                                            return `${product.name} x ${item.quantity}`;
-                                        }).join(", ")}
+                                        {order.items.map((item, index) => (
+                                            getProductDisplay(item)
+                                        )).join(", ")}
                                     </span>
                                     <span>Items: {order.items.length}</span>
                                 </p>
