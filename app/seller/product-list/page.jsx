@@ -63,7 +63,7 @@ const ProductList = () => {
 
   useEffect(() => {
     fetchSellerProducts();
-  }, []);
+  }, [getToken]);
 
   if (loading) {
     return <Loading />;

@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
 import axios from "axios";
 import toast from "react-hot-toast";
-import Loading from "@/components/Loading";
 
 const AddProduct = () => {
   const { getToken } = useAppContext();
@@ -31,7 +30,7 @@ const AddProduct = () => {
   // Cleanup on component unmount
   React.useEffect(() => {
     return () => cleanupPreviews();
-  }, []);
+  }, [cleanupPreviews, previewUrls]);
 
   const handleImageChange = async (e, index) => {
     const file = e.target.files?.[0];
