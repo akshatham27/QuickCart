@@ -2,7 +2,7 @@
 import { productsDummyData, userDummyData } from "@/assets/assets";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 
@@ -27,15 +27,18 @@ export const AppContextProvider = (props) => {
     const [cartItems, setCartItems] = useState({})
     const [refetchTrigger, setRefetchTrigger] = useState(0);
 
-    const fetchProducts = async () => {
+    const fetchProducts = useCallback(async () => {
         try {
             setLoading(true);
+            console.log("Fetching products...");
             const response = await fetch('/api/products');
             const data = await response.json();
             
             if (data.success) {
+                console.log("Products fetched successfully:", data.products.length);
                 setProducts(data.products);
             } else {
+                console.error("Failed to fetch products:", data.message);
                 toast.error(data.message);
             }
         } catch (error) {
@@ -44,14 +47,16 @@ export const AppContextProvider = (props) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const triggerProductsRefetch = () => {
+    const triggerProductsRefetch = useCallback(() => {
+        console.log("Triggering products refetch...");
         setRefetchTrigger(prev => prev + 1);
-    };
+    }, []);
 
-    const fetchUserData = async () => {
-        try{
+    const fetchUserData = useCallback(async () => {
+        try {
+            if (!user) return;
 
             if(user.publicMetadata.role === "seller"){
                 setIsSeller(true)
@@ -73,8 +78,7 @@ export const AppContextProvider = (props) => {
         } catch (error) {
             toast.error(error.message)
         }
-    }
-    
+    }, [user, getToken]);
 
     const addToCart = async (itemId) => {
         let cartData = structuredClone(cartItems);
@@ -111,7 +115,7 @@ export const AppContextProvider = (props) => {
         let totalAmount = 0;
         for (const items in cartItems) {
             let itemInfo = products.find((product) => product._id === items);
-            if (cartItems[items] > 0) {
+            if (cartItems[items] > 0 && itemInfo) {
                 totalAmount += itemInfo.offerPrice * cartItems[items];
             }
         }
@@ -119,14 +123,15 @@ export const AppContextProvider = (props) => {
     }
 
     useEffect(() => {
-        fetchProducts()
-    }, [refetchTrigger])
+        console.log("Products refetch triggered:", refetchTrigger);
+        fetchProducts();
+    }, [refetchTrigger, fetchProducts]);
 
     useEffect(() => {
         if(user){
-        fetchUserData()
+            fetchUserData();
         }
-    }, [user])
+    }, [user, fetchUserData]);
 
     const value = {
         user, getToken,

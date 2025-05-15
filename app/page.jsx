@@ -15,11 +15,23 @@ const Home = () => {
   const { products, fetchProducts, loading } = useAppContext();
 
   useEffect(() => {
+    console.log("Home page mounted, fetching products...");
     fetchProducts();
   }, [fetchProducts]);
 
+  useEffect(() => {
+    console.log("Products updated:", { count: products.length, loading });
+  }, [products, loading]);
+
   if (loading) {
-    return <Loading />;
+    console.log("Showing loading state...");
+    return (
+      <>
+        <Navbar />
+        <Loading />
+        <Footer />
+      </>
+    );
   }
 
   return (
@@ -38,7 +50,7 @@ const Home = () => {
             <ProductCard key={product._id} product={product} />
           ))}
         </div>
-        {products.length === 0 && (
+        {products.length === 0 && !loading && (
           <div className="w-full h-[50vh] flex items-center justify-center">
             <p className="text-gray-500">No products available</p>
           </div>

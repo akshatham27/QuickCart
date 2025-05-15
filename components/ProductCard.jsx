@@ -9,20 +9,46 @@ const ProductCard = ({ product }) => {
     const [imageUrl, setImageUrl] = useState(null);
 
     useEffect(() => {
+        console.log("ProductCard mounted/updated:", {
+            productId: product?._id,
+            hasImage: product?.image?.length > 0,
+            imageUrl: product?.image?.[0]
+        });
+
         if (product?.image && product.image.length > 0) {
             setImageUrl(product.image[0]);
             setImageError(false);
+        } else {
+            console.warn("Product has no images:", product?._id);
+            setImageUrl(assets.no_image);
+            setImageError(true);
         }
     }, [product]);
 
     if (!product) {
+        console.warn("ProductCard received null/undefined product");
         return null;
     }
 
     const handleImageError = () => {
-        console.error('Image failed to load:', imageUrl);
+        console.error('Image failed to load:', {
+            productId: product._id,
+            attemptedUrl: imageUrl
+        });
         setImageError(true);
         setImageUrl(assets.no_image);
+    };
+
+    const handleBuyNow = (e) => {
+        e.stopPropagation();
+        console.log("Adding to cart:", product._id);
+        addToCart(product._id);
+        router.push('/cart');
+    };
+
+    const handleProductClick = () => {
+        console.log("Navigating to product:", product._id);
+        router.push(`/product/${product._id}`);
     };
 
     return (
@@ -30,7 +56,7 @@ const ProductCard = ({ product }) => {
             {/* Product Image Container */}
             <div 
                 className="relative aspect-square bg-gray-50 cursor-pointer group"
-                onClick={() => router.push(`/product/${product._id}`)}
+                onClick={handleProductClick}
             >
                 <Image
                     src={!imageError ? (imageUrl || assets.no_image) : assets.no_image}
@@ -60,7 +86,7 @@ const ProductCard = ({ product }) => {
                 <div className="space-y-2">
                     <h3 
                         className="font-medium text-xl leading-tight hover:text-orange-600 transition-colors cursor-pointer"
-                        onClick={() => router.push(`/product/${product._id}`)}
+                        onClick={handleProductClick}
                     >
                         {product.name}
                     </h3>
@@ -96,11 +122,7 @@ const ProductCard = ({ product }) => {
                         </p>
                     </div>
                     <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            addToCart(product._id);
-                            router.push('/cart');
-                        }}
+                        onClick={handleBuyNow}
                         className="px-6 py-3 text-sm font-medium text-white bg-orange-600 rounded-full hover:bg-orange-700 transition-colors"
                     >
                         Buy now
