@@ -8,7 +8,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 
 const AddProduct = () => {
-  const { getToken } = useAppContext();
+  const { getToken, triggerProductsRefetch } = useAppContext();
   const router = useRouter();
 
   const [files, setFiles] = useState([]);
@@ -137,6 +137,8 @@ const AddProduct = () => {
         setOfferPrice('');
         setFiles([]);
         setPreviewUrls([]);
+        // Trigger products refetch
+        triggerProductsRefetch();
         // Redirect to product list
         router.push('/seller/product-list');
       } else {

@@ -9,7 +9,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 
 const ProductList = () => {
-  const { router, getToken } = useAppContext();
+  const { router, getToken, triggerProductsRefetch } = useAppContext();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingProduct, setDeletingProduct] = useState(null);
@@ -50,6 +50,7 @@ const ProductList = () => {
       if (response.data.success) {
         toast.success("Product deleted successfully");
         setProducts(products.filter(p => p._id !== productId));
+        triggerProductsRefetch();
       } else {
         toast.error(response.data.message || "Failed to delete product");
       }

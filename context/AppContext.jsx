@@ -25,9 +25,11 @@ export const AppContextProvider = (props) => {
     const [userData, setUserData] = useState(false)
     const [isSeller, setIsSeller] = useState(false)
     const [cartItems, setCartItems] = useState({})
+    const [refetchTrigger, setRefetchTrigger] = useState(0);
 
     const fetchProducts = async () => {
         try {
+            setLoading(true);
             const response = await fetch('/api/products');
             const data = await response.json();
             
@@ -42,6 +44,10 @@ export const AppContextProvider = (props) => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const triggerProductsRefetch = () => {
+        setRefetchTrigger(prev => prev + 1);
     };
 
     const fetchUserData = async () => {
@@ -114,7 +120,7 @@ export const AppContextProvider = (props) => {
 
     useEffect(() => {
         fetchProducts()
-    }, [])
+    }, [refetchTrigger])
 
     useEffect(() => {
         if(user){
@@ -131,7 +137,8 @@ export const AppContextProvider = (props) => {
         loading,
         cartItems, setCartItems,
         addToCart, updateCartQuantity,
-        getCartCount, getCartAmount
+        getCartCount, getCartAmount,
+        triggerProductsRefetch
     }
 
     return (
