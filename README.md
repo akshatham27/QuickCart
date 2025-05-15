@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+ ## 🛒 QuickCart – E-Commerce Web Application
 
-## Getting Started
+QuickCart is a modern and user-friendly e-commerce platform that allows users to browse products, place orders, and manage their shopping experience, while sellers can list products, manage inventory, and track orders through a dedicated dashboard.
 
-First, run the development server:
+## 🔗 Live Demo
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+👉 [https://quick-cart-akshatha.vercel.app/](https://quick-cart-akshatha.vercel.app/)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Features
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### For Customers
+- 🔍 Browse and search products by category or name
+- 🛒 Add to cart, place orders, and track them
+- 📝 User registration and secure login
+- ❤️ Wishlist and save for later functionality
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### For Sellers
+- 📦 Add, edit, and delete products
+- 📊 Dashboard to view listed products and orders
+- 🔔 Get notified when users place orders
 
-## Learn More
+### General Features
+- 🔐 Secure Authentication (JWT/Session-based)
+- 🖼️ Product image upload and preview
+- 🌐 Responsive UI (mobile & desktop friendly)
+- 📈 Admin panel (optional) for platform management
 
-To learn more about Next.js, take a look at the following resources:
+## 🧰 Tech Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Frontend:** React / Vue / HTML-CSS-JS / Tailwind / Bootstrap *(based on your actual stack)*
+- **Backend:** Node.js / Django / Laravel / Express.js
+- **Database:** MongoDB / PostgreSQL / MySQL
+- **Authentication:** JWT / Session-based login
+- **Storage:** Local / AWS S3 / Cloudinary for image uploads**
