@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { assets } from "@/assets/assets";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -21,16 +21,16 @@ const AddProduct = () => {
   const [previewUrls, setPreviewUrls] = useState([]);
 
   // Cleanup function for preview URLs
-  const cleanupPreviews = () => {
+  const cleanupPreviews = useCallback(() => {
     previewUrls.forEach(url => {
       if (url) URL.revokeObjectURL(url);
     });
-  };
+  }, [previewUrls]);
 
   // Cleanup on component unmount
   React.useEffect(() => {
     return () => cleanupPreviews();
-  }, [cleanupPreviews, previewUrls]);
+  }, [cleanupPreviews]);
 
   const handleImageChange = async (e, index) => {
     const file = e.target.files?.[0];

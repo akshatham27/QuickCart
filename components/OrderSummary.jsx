@@ -1,5 +1,5 @@
 import { useAppContext } from "@/context/AppContext";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import toast from "react-hot-toast";
 
 const OrderSummary = () => {
@@ -13,7 +13,7 @@ const OrderSummary = () => {
   const [userAddresses, setUserAddresses] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState("cod");
 
-  const fetchUserAddresses = async () => {
+  const fetchUserAddresses = useCallback(async () => {
     try {
       setAddressLoading(true);
       setError("");
@@ -51,7 +51,7 @@ const OrderSummary = () => {
     } finally {
       setAddressLoading(false);
     }
-  };
+  }, [getToken, setSelectedAddress]);
 
   const handleAddressSelect = (address) => {
     setSelectedAddress(address);
@@ -131,7 +131,7 @@ const OrderSummary = () => {
 
   useEffect(() => {
     fetchUserAddresses();
-  }, [getToken]);
+  }, [fetchUserAddresses]);
 
   return (
     <div className="w-full md:w-96 bg-gray-500/5 p-5">

@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { assets } from "@/assets/assets";
 import Image from "next/image";
 import { useAppContext } from "@/context/AppContext";
@@ -12,7 +12,7 @@ const MyOrders = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const fetchOrders = async () => {
+    const fetchOrders = useCallback(async () => {
         try {
             const token = await getToken();
             const response = await fetch('/api/orders', {
@@ -32,11 +32,11 @@ const MyOrders = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [getToken]);
 
     useEffect(() => {
         fetchOrders();
-    }, [getToken]);
+    }, [fetchOrders]);
 
     const getProductDisplay = (item) => {
         const product = item.productId;
