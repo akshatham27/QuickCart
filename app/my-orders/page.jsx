@@ -36,7 +36,7 @@ const MyOrders = () => {
 
     useEffect(() => {
         fetchOrders();
-    }, []);
+    }, [getToken]);
 
     const getProductDisplay = (item) => {
         const product = item.productId;
@@ -63,7 +63,7 @@ const MyOrders = () => {
                                     />
                                     <p className="flex flex-col gap-3">
                                         <span className="font-medium text-base">
-                                            {order.items.map((item, index) => (
+                                            {order.items.map(item => (
                                                 getProductDisplay(item)
                                             )).join(", ")}
                                         </span>

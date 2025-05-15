@@ -16,7 +16,7 @@ const Home = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [fetchProducts]);
 
   if (loading) {
     return <Loading />;
