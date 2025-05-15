@@ -4,7 +4,7 @@ import { useAuth, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import { toast } from "react-toastify";
+import { toast } from "react-hot-toast";
 
 export const AppContext = createContext();
 
@@ -13,7 +13,6 @@ export const useAppContext = () => {
 }
 
 export const AppContextProvider = (props) => {
-
     const currency = process.env.NEXT_PUBLIC_CURRENCY
     const router = useRouter()
 
@@ -31,19 +30,18 @@ export const AppContextProvider = (props) => {
         try {
             setLoading(true);
             console.log("Fetching products...");
-            const response = await fetch('/api/products');
-            const data = await response.json();
+            const response = await axios.get('/api/products');
             
-            if (data.success) {
-                console.log("Products fetched successfully:", data.products.length);
-                setProducts(data.products);
+            if (response.data.success) {
+                console.log("Products fetched successfully:", response.data.products.length);
+                setProducts(response.data.products);
             } else {
-                console.error("Failed to fetch products:", data.message);
-                toast.error(data.message);
+                console.error("Failed to fetch products:", response.data.message);
+                toast.error(response.data.message || "Failed to fetch products");
             }
         } catch (error) {
             console.error("Error fetching products:", error);
-            toast.error("Failed to fetch products");
+            toast.error(error.response?.data?.message || "Failed to fetch products");
         } finally {
             setLoading(false);
         }
@@ -52,76 +50,89 @@ export const AppContextProvider = (props) => {
     const triggerProductsRefetch = useCallback(() => {
         console.log("Triggering products refetch...");
         setRefetchTrigger(prev => prev + 1);
-        // Dispatch a custom event to notify components
-        window.dispatchEvent(new Event('productUpdated'));
+        try {
+            window.dispatchEvent(new CustomEvent('productUpdated'));
+        } catch (error) {
+            console.error("Error dispatching productUpdated event:", error);
+        }
     }, []);
 
     const fetchUserData = useCallback(async () => {
         try {
             if (!user) return;
 
-            if(user.publicMetadata.role === "seller"){
-                setIsSeller(true)
+            if (user.publicMetadata?.role === "seller") {
+                setIsSeller(true);
             }
 
-            const token = await getToken()
-            const {data} = await axios.get("/api/user/data", {
+            const token = await getToken();
+            const response = await axios.get("/api/user/data", {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
-            })
+            });
 
-            if(data.success){
-                setUserData(data.user)
-                setCartItems(data.user.cartItems)
-            }else{
-                toast.error(data.message)
+            if (response.data.success) {
+                setUserData(response.data.user);
+                setCartItems(response.data.user.cartItems || {});
+            } else {
+                toast.error(response.data.message || "Failed to fetch user data");
             }
         } catch (error) {
-            toast.error(error.message)
+            console.error("Error fetching user data:", error);
+            toast.error(error.response?.data?.message || "Failed to fetch user data");
         }
     }, [user, getToken]);
 
     const addToCart = async (itemId) => {
-        let cartData = structuredClone(cartItems);
-        if (cartData[itemId]) {
-            cartData[itemId] += 1;
+        try {
+            let cartData = structuredClone(cartItems);
+            cartData[itemId] = (cartData[itemId] || 0) + 1;
+            setCartItems(cartData);
+        } catch (error) {
+            console.error("Error adding to cart:", error);
+            toast.error("Failed to add item to cart");
         }
-        else {
-            cartData[itemId] = 1;
-        }
-        setCartItems(cartData);
     }
 
     const updateCartQuantity = async (itemId, quantity) => {
-        let cartData = structuredClone(cartItems);
-        if (quantity === 0) {
-            delete cartData[itemId];
-        } else {
-            cartData[itemId] = quantity;
+        try {
+            let cartData = structuredClone(cartItems);
+            if (quantity === 0) {
+                delete cartData[itemId];
+            } else {
+                cartData[itemId] = quantity;
+            }
+            setCartItems(cartData);
+        } catch (error) {
+            console.error("Error updating cart:", error);
+            toast.error("Failed to update cart");
         }
-        setCartItems(cartData)
     }
 
     const getCartCount = () => {
-        let totalCount = 0;
-        for (const items in cartItems) {
-            if (cartItems[items] > 0) {
-                totalCount += cartItems[items];
-            }
+        try {
+            return Object.values(cartItems).reduce((total, quantity) => 
+                total + (quantity > 0 ? quantity : 0), 0);
+        } catch (error) {
+            console.error("Error calculating cart count:", error);
+            return 0;
         }
-        return totalCount;
     }
 
     const getCartAmount = () => {
-        let totalAmount = 0;
-        for (const items in cartItems) {
-            let itemInfo = products.find((product) => product._id === items);
-            if (cartItems[items] > 0 && itemInfo) {
-                totalAmount += itemInfo.offerPrice * cartItems[items];
-            }
+        try {
+            return Object.entries(cartItems).reduce((total, [itemId, quantity]) => {
+                const product = products.find(p => p._id === itemId);
+                if (product && quantity > 0) {
+                    return total + (product.offerPrice * quantity);
+                }
+                return total;
+            }, 0);
+        } catch (error) {
+            console.error("Error calculating cart amount:", error);
+            return 0;
         }
-        return Math.floor(totalAmount * 100) / 100;
     }
 
     useEffect(() => {
@@ -130,21 +141,29 @@ export const AppContextProvider = (props) => {
     }, [refetchTrigger, fetchProducts]);
 
     useEffect(() => {
-        if(user){
+        if (user) {
             fetchUserData();
         }
     }, [user, fetchUserData]);
 
     const value = {
-        user, getToken,
-        currency, router,
-        isSeller, setIsSeller,
-        userData, fetchUserData,
-        products, fetchProducts,
+        user,
+        getToken,
+        currency,
+        router,
+        isSeller,
+        setIsSeller,
+        userData,
+        fetchUserData,
+        products,
+        fetchProducts,
         loading,
-        cartItems, setCartItems,
-        addToCart, updateCartQuantity,
-        getCartCount, getCartAmount,
+        cartItems,
+        setCartItems,
+        addToCart,
+        updateCartQuantity,
+        getCartCount,
+        getCartAmount,
         triggerProductsRefetch
     }
 

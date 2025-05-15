@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { assets } from "@/assets/assets";
 import Image from "next/image";
 import { useAppContext } from "@/context/AppContext";
@@ -13,9 +13,8 @@ const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingProduct, setDeletingProduct] = useState(null);
-  const [refetchCount, setRefetchCount] = useState(0);
 
-  const fetchSellerProducts = async () => {
+  const fetchSellerProducts = useCallback(async () => {
     try {
       console.log("Fetching seller products...");
       setLoading(true);
@@ -39,7 +38,7 @@ const ProductList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getToken]);
 
   const handleDeleteProduct = async (productId) => {
     try {
@@ -53,7 +52,7 @@ const ProductList = () => {
 
       if (response.data.success) {
         toast.success("Product deleted successfully");
-        setProducts(products.filter(p => p._id !== productId));
+        setProducts(prevProducts => prevProducts.filter(p => p._id !== productId));
         triggerProductsRefetch();
       } else {
         toast.error(response.data.message || "Failed to delete product");
@@ -66,29 +65,26 @@ const ProductList = () => {
     }
   };
 
-  // Fetch products when component mounts or when refetchCount changes
   useEffect(() => {
     fetchSellerProducts();
-  }, [getToken, refetchCount]);
+  }, [fetchSellerProducts]);
 
-  // Listen for triggerProductsRefetch changes
   useEffect(() => {
-    const handleRefetch = () => {
-      console.log("Product refetch triggered");
-      setRefetchCount(prev => prev + 1);
+    const handleProductUpdate = () => {
+      console.log("Product update detected, refreshing list...");
+      fetchSellerProducts();
     };
 
-    // Add event listener for product updates
-    window.addEventListener('productUpdated', handleRefetch);
+    window.addEventListener('productUpdated', handleProductUpdate);
 
     return () => {
-      window.removeEventListener('productUpdated', handleRefetch);
+      window.removeEventListener('productUpdated', handleProductUpdate);
     };
-  }, []);
+  }, [fetchSellerProducts]);
 
   if (loading) {
     return (
-      <div className="flex-1 min-h-screen">
+      <div className="flex-1 min-h-screen flex items-center justify-center">
         <Loading />
       </div>
     );

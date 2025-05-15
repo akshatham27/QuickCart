@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { assets } from "@/assets/assets";
 import Image from "next/image";
 import { useAppContext } from "@/context/AppContext";
@@ -13,7 +13,7 @@ const Orders = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const fetchSellerOrders = async () => {
+    const fetchSellerOrders = useCallback(async () => {
         try {
             console.log("Fetching seller orders...");
             setLoading(true);
@@ -37,23 +37,23 @@ const Orders = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [getToken]);
 
     useEffect(() => {
         fetchSellerOrders();
-    }, [getToken]);
+    }, [fetchSellerOrders]);
 
-    const getProductDisplay = (item) => {
+    const getProductDisplay = useCallback((item) => {
         const product = item.productId;
         if (!product || !product.name) {
             return `Product (Removed) x ${item.quantity}`;
         }
         return `${product.name} x ${item.quantity}`;
-    };
+    }, []);
 
     if (loading) {
         return (
-            <div className="flex-1 min-h-screen">
+            <div className="flex-1 min-h-screen flex items-center justify-center">
                 <Loading />
             </div>
         );
