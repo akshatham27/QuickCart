@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Order from "@/models/Order";
 import Product from "@/models/Product";
+import authSeller from "@/lib/authSeller";
 
 // Create a new order
 export async function POST(req) {
@@ -122,21 +123,33 @@ export async function GET(req) {
 
         let orders;
         if (role === 'seller') {
+            // Verify seller status
+            const isSeller = await authSeller(userId);
+            if (!isSeller) {
+                return NextResponse.json({ success: false, message: "Unauthorized: Not a seller" }, { status: 403 });
+            }
+
             // If role is seller, get orders where sellerId matches userId
             orders = await Order.find({ sellerId: userId })
                 .populate({
                     path: 'items.productId',
-                    model: 'product'
+                    model: 'Product',
+                    select: 'name price offerPrice image'
                 })
                 .sort({ createdAt: -1 });
+
+            console.log(`Found ${orders.length} orders for seller ${userId}`);
         } else {
             // Otherwise, get orders for the user
             orders = await Order.find({ userId })
                 .populate({
                     path: 'items.productId',
-                    model: 'product'
+                    model: 'Product',
+                    select: 'name price offerPrice image'
                 })
                 .sort({ createdAt: -1 });
+
+            console.log(`Found ${orders.length} orders for user ${userId}`);
         }
 
         return NextResponse.json({ success: true, orders });

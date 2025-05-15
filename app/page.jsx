@@ -20,15 +20,16 @@ const Home = () => {
   }, [fetchProducts]);
 
   useEffect(() => {
-    console.log("Products updated:", { count: products.length, loading });
+    console.log("Products updated:", { count: products?.length, loading });
   }, [products, loading]);
 
   if (loading) {
-    console.log("Showing loading state...");
     return (
       <>
         <Navbar />
-        <Loading />
+        <div className="flex-1 min-h-screen flex items-center justify-center">
+          <Loading />
+        </div>
         <Footer />
       </>
     );
@@ -36,7 +37,7 @@ const Home = () => {
 
   return (
     <>
-      <Navbar/>
+      <Navbar />
       <div className="px-6 md:px-16 lg:px-32">
         <HeaderSlider />
         <HomeProducts />
@@ -45,12 +46,14 @@ const Home = () => {
         <NewsLetter />
       </div>
       <div className="w-full min-h-screen p-4 md:p-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {products.map((product) => (
-            <ProductCard key={product._id} product={product} />
-          ))}
-        </div>
-        {products.length === 0 && !loading && (
+        <h2 className="text-2xl font-bold text-gray-900 mb-8">All Products</h2>
+        {products && products.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {products.map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
+        ) : (
           <div className="w-full h-[50vh] flex items-center justify-center">
             <p className="text-gray-500">No products available</p>
           </div>

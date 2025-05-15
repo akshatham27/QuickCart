@@ -30,7 +30,12 @@ export const AppContextProvider = (props) => {
         try {
             setLoading(true);
             console.log("Fetching products...");
-            const response = await axios.get('/api/products');
+            const response = await axios.get('/api/products', {
+                params: {
+                    limit: 100,
+                    sort: '-createdAt'
+                }
+            });
             
             if (response.data.success) {
                 console.log("Products fetched successfully:", response.data.products.length);
@@ -52,10 +57,11 @@ export const AppContextProvider = (props) => {
         setRefetchTrigger(prev => prev + 1);
         try {
             window.dispatchEvent(new CustomEvent('productUpdated'));
+            fetchProducts(); // Immediately fetch products after trigger
         } catch (error) {
             console.error("Error dispatching productUpdated event:", error);
         }
-    }, []);
+    }, [fetchProducts]);
 
     const fetchUserData = useCallback(async () => {
         try {
