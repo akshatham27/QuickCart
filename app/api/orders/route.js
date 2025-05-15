@@ -112,10 +112,13 @@ export async function GET(req) {
     try {
         const { userId } = getAuth(req);
         if (!userId) {
+            console.log("Unauthorized request: No userId found");
             return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
         }
 
+        console.log("Connecting to database...");
         await connectDB();
+        console.log("Database connected successfully");
         
         // Get the role query parameter
         const { searchParams } = new URL(req.url);
@@ -126,9 +129,11 @@ export async function GET(req) {
             // Verify seller status
             const isSeller = await authSeller(userId);
             if (!isSeller) {
+                console.log(`User ${userId} is not authorized as seller`);
                 return NextResponse.json({ success: false, message: "Unauthorized: Not a seller" }, { status: 403 });
             }
 
+            console.log(`Fetching orders for seller ${userId}`);
             // If role is seller, get orders where sellerId matches userId
             orders = await Order.find({ sellerId: userId })
                 .populate({
@@ -136,10 +141,12 @@ export async function GET(req) {
                     model: 'Product',
                     select: 'name price offerPrice image'
                 })
-                .sort({ createdAt: -1 });
+                .sort({ createdAt: -1 })
+                .lean();
 
             console.log(`Found ${orders.length} orders for seller ${userId}`);
         } else {
+            console.log(`Fetching orders for user ${userId}`);
             // Otherwise, get orders for the user
             orders = await Order.find({ userId })
                 .populate({
@@ -147,14 +154,36 @@ export async function GET(req) {
                     model: 'Product',
                     select: 'name price offerPrice image'
                 })
-                .sort({ createdAt: -1 });
+                .sort({ createdAt: -1 })
+                .lean();
 
             console.log(`Found ${orders.length} orders for user ${userId}`);
         }
 
-        return NextResponse.json({ success: true, orders });
+        // Validate and clean up order data
+        const validatedOrders = orders.map(order => ({
+            ...order,
+            items: order.items.map(item => ({
+                ...item,
+                productId: item.productId || { name: 'Product Removed' }
+            })),
+            totalAmount: Number(order.totalAmount) || 0,
+            status: order.status || 'pending',
+            createdAt: order.createdAt || new Date()
+        }));
+
+        console.log("Successfully validated all orders");
+
+        return NextResponse.json({ 
+            success: true, 
+            orders: validatedOrders 
+        });
     } catch (error) {
         console.error("Error fetching orders:", error);
-        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+        return NextResponse.json({ 
+            success: false, 
+            message: error.message || "Failed to fetch orders",
+            error: error.stack 
+        }, { status: 500 });
     }
 } 
