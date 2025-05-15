@@ -1,5 +1,4 @@
-// File: /app/api/orders/route.js or /pages/api/orders/index.js
-import { getAuth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs"; // ✅ Correct for App Router
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Order from "@/models/Order";
@@ -9,7 +8,7 @@ import authSeller from "@/lib/authSeller";
 // CREATE ORDERS
 export async function POST(req) {
     try {
-        const { userId } = getAuth(req);
+        const { userId } = auth(); // ✅ Correct usage for App Router
         if (!userId) {
             return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
         }
@@ -17,10 +16,21 @@ export async function POST(req) {
         await connectDB();
         const { items, totalAmount, shippingAddress, paymentMethod } = await req.json();
 
-        if (!items?.length) return NextResponse.json({ success: false, message: "No items in order" }, { status: 400 });
-        if (!shippingAddress) return NextResponse.json({ success: false, message: "Shipping address required" }, { status: 400 });
-        if (!totalAmount || totalAmount <= 0) return NextResponse.json({ success: false, message: "Invalid total amount" }, { status: 400 });
-        if (!['cod', 'online'].includes(paymentMethod)) return NextResponse.json({ success: false, message: "Invalid payment method" }, { status: 400 });
+        if (!items?.length) {
+            return NextResponse.json({ success: false, message: "No items in order" }, { status: 400 });
+        }
+
+        if (!shippingAddress) {
+            return NextResponse.json({ success: false, message: "Shipping address required" }, { status: 400 });
+        }
+
+        if (!totalAmount || totalAmount <= 0) {
+            return NextResponse.json({ success: false, message: "Invalid total amount" }, { status: 400 });
+        }
+
+        if (!['cod', 'online'].includes(paymentMethod)) {
+            return NextResponse.json({ success: false, message: "Invalid payment method" }, { status: 400 });
+        }
 
         const productIds = items.map(item => item.productId);
         const products = await Product.find({ _id: { $in: productIds } });
@@ -44,7 +54,8 @@ export async function POST(req) {
                 price: product.offerPrice || product.price
             });
 
-            ordersBySeller[product.userId].totalAmount += (product.offerPrice || product.price) * item.quantity;
+            ordersBySeller[product.userId].totalAmount += 
+                (product.offerPrice || product.price) * item.quantity;
         });
 
         const orders = await Promise.all(
@@ -63,7 +74,6 @@ export async function POST(req) {
         );
 
         console.log("Orders created successfully for user:", userId);
-
         return NextResponse.json({ success: true, message: "Orders created", orders });
     } catch (error) {
         console.error("Error creating order:", error);
@@ -74,8 +84,10 @@ export async function POST(req) {
 // GET ORDERS
 export async function GET(req) {
     try {
-        const { userId } = getAuth(req);
-        if (!userId) return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+        const { userId } = auth(); // ✅ Correct usage
+        if (!userId) {
+            return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+        }
 
         await connectDB();
 
@@ -85,7 +97,9 @@ export async function GET(req) {
         let orders;
         if (role === 'seller') {
             const isSeller = await authSeller(userId);
-            if (!isSeller) return NextResponse.json({ success: false, message: "Unauthorized: Not a seller" }, { status: 403 });
+            if (!isSeller) {
+                return NextResponse.json({ success: false, message: "Unauthorized: Not a seller" }, { status: 403 });
+            }
 
             orders = await Order.find({ sellerId: userId })
                 .populate({
@@ -113,7 +127,8 @@ export async function GET(req) {
                 productId: item.productId || { name: 'Product Removed' }
             })),
             totalAmount: Number(order.totalAmount),
-            status: order.status || 'pending'
+            status: order.status || 'pending',
+            createdAt: order.createdAt || new Date()
         }));
 
         return NextResponse.json({ success: true, orders: validatedOrders });
