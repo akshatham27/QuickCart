@@ -6,7 +6,7 @@ import { useAppContext } from "@/context/AppContext";
 import Footer from "@/components/seller/Footer";
 import Loading from "@/components/Loading";
 import axios from "axios";
-import toast from "react-hot-toast";
+import { toast } from "react-hot-toast";
 
 const ProductList = () => {
   const { router, getToken, triggerProductsRefetch } = useAppContext();
@@ -17,6 +17,7 @@ const ProductList = () => {
   const fetchSellerProducts = async () => {
     try {
       console.log("Fetching seller products...");
+      setLoading(true);
       const token = await getToken();
       const response = await axios.get('/api/products/seller', {
         headers: {
@@ -25,13 +26,15 @@ const ProductList = () => {
       });
       
       if (response.data.success) {
+        console.log("Successfully fetched products:", response.data.products.length);
         setProducts(response.data.products);
       } else {
+        console.error("Failed to fetch products:", response.data.message);
         toast.error(response.data.message || "Failed to fetch products");
       }
     } catch (error) {
       console.error("Error fetching products:", error);
-      toast.error("Failed to fetch products");
+      toast.error(error.response?.data?.message || "Failed to fetch products");
     } finally {
       setLoading(false);
     }
@@ -56,7 +59,7 @@ const ProductList = () => {
       }
     } catch (error) {
       console.error("Error deleting product:", error);
-      toast.error("Failed to delete product");
+      toast.error(error.response?.data?.message || "Failed to delete product");
     } finally {
       setDeletingProduct(null);
     }
@@ -67,7 +70,11 @@ const ProductList = () => {
   }, [getToken]);
 
   if (loading) {
-    return <Loading />;
+    return (
+      <div className="flex-1 min-h-screen">
+        <Loading />
+      </div>
+    );
   }
 
   return (
@@ -103,7 +110,7 @@ const ProductList = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {products.map((product) => (
-              <div key={product._id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+              <div key={product._id} className="bg-white rounded-lg shadow overflow-hidden">
                 <div className="aspect-square relative">
                   <Image
                     src={product.image?.[0] || assets.no_image}
