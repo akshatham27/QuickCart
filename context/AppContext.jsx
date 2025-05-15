@@ -52,6 +52,8 @@ export const AppContextProvider = (props) => {
     const triggerProductsRefetch = useCallback(() => {
         console.log("Triggering products refetch...");
         setRefetchTrigger(prev => prev + 1);
+        // Dispatch a custom event to notify components
+        window.dispatchEvent(new Event('productUpdated'));
     }, []);
 
     const fetchUserData = useCallback(async () => {

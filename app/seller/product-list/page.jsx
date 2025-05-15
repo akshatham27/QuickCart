@@ -13,6 +13,7 @@ const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingProduct, setDeletingProduct] = useState(null);
+  const [refetchCount, setRefetchCount] = useState(0);
 
   const fetchSellerProducts = async () => {
     try {
@@ -65,9 +66,25 @@ const ProductList = () => {
     }
   };
 
+  // Fetch products when component mounts or when refetchCount changes
   useEffect(() => {
     fetchSellerProducts();
-  }, [getToken]);
+  }, [getToken, refetchCount]);
+
+  // Listen for triggerProductsRefetch changes
+  useEffect(() => {
+    const handleRefetch = () => {
+      console.log("Product refetch triggered");
+      setRefetchCount(prev => prev + 1);
+    };
+
+    // Add event listener for product updates
+    window.addEventListener('productUpdated', handleRefetch);
+
+    return () => {
+      window.removeEventListener('productUpdated', handleRefetch);
+    };
+  }, []);
 
   if (loading) {
     return (

@@ -6,6 +6,7 @@ import { useAppContext } from "@/context/AppContext";
 import Footer from "@/components/seller/Footer";
 import Loading from "@/components/Loading";
 import { toast } from "react-hot-toast";
+import axios from "axios";
 
 const Orders = () => {
     const { currency, getToken } = useAppContext();
@@ -17,23 +18,22 @@ const Orders = () => {
             console.log("Fetching seller orders...");
             setLoading(true);
             const token = await getToken();
-            const response = await fetch('/api/orders?role=seller', {
+            const response = await axios.get('/api/orders?role=seller', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            const data = await response.json();
             
-            if (data.success) {
-                console.log("Successfully fetched orders:", data.orders.length);
-                setOrders(data.orders);
+            if (response.data.success) {
+                console.log("Successfully fetched orders:", response.data.orders.length);
+                setOrders(response.data.orders);
             } else {
-                console.error("Failed to fetch orders:", data.message);
-                toast.error(data.message || "Failed to fetch orders");
+                console.error("Failed to fetch orders:", response.data.message);
+                toast.error(response.data.message || "Failed to fetch orders");
             }
         } catch (error) {
             console.error("Error fetching orders:", error);
-            toast.error("Failed to fetch orders");
+            toast.error(error.response?.data?.message || "Failed to fetch orders");
         } finally {
             setLoading(false);
         }
